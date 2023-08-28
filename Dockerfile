@@ -1,17 +1,17 @@
 FROM golang:1.21.0 AS builder
+ENV ROOT=/build
+RUN mkdir ${ROOT}
+WORKDIR ${ROOT}
 
-WORKDIR /go/src/github.com/daime/http-dump
+COPY ./go.mod ./go.sum ./src ./
+RUN go get
 
-COPY main.go .
+RUN CGO_ENABLED=0 GOOS=linux go build -o main $ROOT/main.go && chmod +x ./main
 
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o http-dump .
+FROM alpine:3.18
+WORKDIR /app
 
-FROM marcosmorelli/debian-base-image
-
-WORKDIR /root/
-
-COPY --from=0 /go/src/github.com/daime/http-dump/http-dump .
-
+COPY --from=builder /build/main ./
 EXPOSE 8080
 
-CMD ["./http-dump"]
+CMD ["./main"]
