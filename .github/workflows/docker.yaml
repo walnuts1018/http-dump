@@ -68,8 +68,8 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/walnuts1018/http-dump:test-latest
-            ghcr.io/walnuts1018/http-dump:test-${{ github.sha }}-${{ github.run_number }}
+            ghcr.io/walnuts1018/http-dump:latest
+            ghcr.io/walnuts1018/http-dump:${{ github.sha }}-${{ github.run_number }}
 
   SucceessNotification:
     if: ${{ success() }}
