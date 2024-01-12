@@ -1,4 +1,4 @@
-FROM golang:1.21.0 AS builder
+FROM golang:1.21.5 AS builder
 ENV ROOT=/build
 RUN mkdir ${ROOT}
 WORKDIR ${ROOT}
@@ -8,7 +8,7 @@ RUN go get
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o main $ROOT/main.go && chmod +x ./main
 
-FROM alpine:3.18
+FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /build/main ./
