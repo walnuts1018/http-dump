@@ -10,24 +10,37 @@ import (
 
 var port = "8080"
 
+type structedRequest struct {
+	Proto  string
+	Method string
+	Host   string
+	Header http.Header
+}
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		var s structedRequest
+		s.Proto = r.Proto
+		s.Method = r.Method
+		s.Host = r.Host
+		s.Header = r.Header
+
 		d, err := httputil.DumpRequest(r, true)
 		if err != nil {
 			msg := fmt.Sprintf("couldn't dump request: %v", err)
-			logger.Error(msg, "host", slog.Any("request", *r))
+			logger.Error(msg, slog.Any("request", s))
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 
 		b := string(d)
-		logger.Info("request received", slog.Any("request", *r))
+		logger.Info("request received", slog.Any("request", s))
 
 		if _, err := fmt.Fprint(w, b); err != nil {
 			msg := fmt.Sprintf("couldn't write response: %s", err)
-			logger.Error(msg, slog.Any("request", *r))
+			logger.Error(msg, slog.Any("request", s))
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
