@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"time"
+
+	"github.com/lmittmann/tint"
 )
 
 var port = "8080"
@@ -18,7 +21,9 @@ type structedRequest struct {
 }
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
+		TimeFormat: time.RFC3339,
+	}))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var s structedRequest
