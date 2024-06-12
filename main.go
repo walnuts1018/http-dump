@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -9,56 +10,67 @@ import (
 	"time"
 
 	"github.com/lmittmann/tint"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel/trace"
 )
-
-var port = "8080"
-
-type structedRequest struct {
-	Proto  string
-	Method string
-	Host   string
-	Header http.Header
-}
 
 func main() {
 	logger := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
 		TimeFormat: time.RFC3339,
 	}))
+	slog.SetDefault(logger)
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var s structedRequest
-		s.Proto = r.Proto
-		s.Method = r.Method
-		s.Host = r.Host
-		s.Header = r.Header
+	ctx := context.Background()
+
+	close, err := NewTracerProvider(ctx)
+	if err != nil {
+		slog.Error(fmt.Sprintf("failed to create tracer provider: %v", err))
+	}
+	defer close()
+
+	mux := http.NewServeMux()
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, span := tracer.Start(r.Context(), fmt.Sprintf("%s %s", r.Method, r.URL.Path))
+
+		s := NewStructedRequest(r)
 
 		d, err := httputil.DumpRequest(r, true)
 		if err != nil {
 			msg := fmt.Sprintf("couldn't dump request: %v", err)
-			logger.Error(msg, slog.Any("request", s))
+			span.RecordError(err)
+			slog.Error(msg, slog.Any("request", s))
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
 
-		b := string(d)
-		logger.Info("request received", slog.Any("request", s))
+		span.AddEvent("request received", trace.WithAttributes(
+			s.GetAttributes()...,
+		))
 
-		if _, err := fmt.Fprint(w, b); err != nil {
+		slog.Info("request received", slog.Any("request", s))
+
+		if _, err := fmt.Fprint(w, string(d)); err != nil {
 			msg := fmt.Sprintf("couldn't write response: %s", err)
-			logger.Error(msg, slog.Any("request", s))
+			span.RecordError(err)
+			slog.Error(msg, slog.Any("request", s))
 			http.Error(w, msg, http.StatusInternalServerError)
 			return
 		}
-	})
 
-	if p := os.Getenv("PORT"); p != "" {
-		port = p
+		defer span.End()
+	}))
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
 	addr := ":" + port
-	logger.Info("http-dump is starting", "addr", addr)
+	slog.Info("http-dump is starting", "addr", addr)
 
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		logger.Error(fmt.Sprintf("couldn't start server: %s", err))
+	if err := http.ListenAndServe(addr, otelhttp.NewHandler(mux, "server",
+		otelhttp.WithMessageEvents(otelhttp.ReadEvents, otelhttp.WriteEvents),
+	)); err != nil {
+		slog.Error(fmt.Sprintf("couldn't start server: %s", err))
 	}
-	logger.Info("http-dump is shutting down")
+	slog.Info("http-dump is shutting down")
 }
