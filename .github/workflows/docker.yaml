@@ -49,7 +49,7 @@ jobs:
         run: echo "ImageTag=${GITHUB_REF##*/}" >> $GITHUB_ENV
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@v6.2.0
+        uses: docker/build-push-action@v6.3.0
         if: github.event_name == 'release'
         with:
           push: true
@@ -62,7 +62,7 @@ jobs:
             ghcr.io/walnuts1018/http-dump:${{ env.ImageTag }}
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@v6.2.0
+        uses: docker/build-push-action@v6.3.0
         if: github.event_name != 'release'
         with:
           push: true
