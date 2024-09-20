@@ -3,12 +3,18 @@ ENV ROOT=/build
 RUN mkdir ${ROOT}
 WORKDIR ${ROOT}
 
-COPY ./ ./
-RUN go get
+RUN --mount=type=cache,target=/go/pkg/mod/,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    --mount=type=bind,source=go.sum,target=go.sum \
+    --mount=type=bind,source=go.mod,target=go.mod \
+    go mod download -x
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o main $ROOT && chmod +x ./main
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod/,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    CGO_ENABLED=0 GOOS=linux go build -o main $ROOT && chmod +x ./main
 
-FROM alpine:latest
+FROM debian:bookworm-slim
 WORKDIR /app
 
 COPY --from=builder /build/main ./
