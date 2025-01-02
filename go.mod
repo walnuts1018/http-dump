@@ -3,7 +3,7 @@ module github.com/walnuts1018/http-dump
 go 1.22.3
 
 require (
-	github.com/lmittmann/tint v1.0.4
+	github.com/lmittmann/tint v1.0.6
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0
 	go.opentelemetry.io/otel v1.32.0
 	go.opentelemetry.io/otel/sdk v1.27.0
