@@ -1,6 +1,6 @@
 module github.com/walnuts1018/http-dump
 
-go 1.23.4
+go 1.24.0
 
 require (
 	github.com/lmittmann/tint v1.0.7
