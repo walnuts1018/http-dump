@@ -5,7 +5,9 @@
     "github>walnuts1018/renovate-config"
   ],
   "forkProcessing": "enabled",
-  "dependencyDashboard": true,
+  "dependencyDashboard": {
+    "enabled": true
+  },
   "timezone": "Asia/Tokyo",
   "packageRules": [
     {
